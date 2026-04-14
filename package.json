@@ -1,0 +1,25 @@
+{
+  "name": "kubeweb",
+  "version": "1.0.0",
+  "description": "Local Kubernetes management UI without a web server",
+  "main": "server.js",
+  "bin": {
+    "kubeweb": "./bin/kubeweb"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js --port 3000"
+  },
+  "keywords": ["kubernetes", "kubectl", "k8s", "management"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "body-parser": "^1.20.2",
+    "child_process": "^1.0.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
