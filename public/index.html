@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KubeWeb - Kubernetes Management UI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary-color: #0066cc;
+            --sidebar-width: 250px;
+        }
+        
+        body {
+            background-color: #f5f5f5;
+        }
+        
+        .sidebar {
+            background-color: #1a1a1a;
+            color: white;
+            min-height: 100vh;
+            padding: 20px 0;
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: var(--sidebar-width);
+            overflow-y: auto;
+        }
+        
+        .sidebar h3 {
+            padding: 0 20px;
+            margin-bottom: 30px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        
+        .sidebar-nav {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .sidebar-nav li {
+            border-bottom: 1px solid #333;
+        }
+        
+        .sidebar-nav a {
+            display: block;
+            padding: 12px 20px;
+            color: #ccc;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        
+        .sidebar-nav a:hover,
+        .sidebar-nav a.active {
+            background-color: var(--primary-color);
+            color: white;
+            padding-left: 25px;
+        }
+        
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 30px;
+        }
+        
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .namespace-selector {
+            min-width: 200px;
+        }
+        
+        .resource-card {
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .resource-header {
+            background: linear-gradient(135deg, var(--primary-color), #0052a3);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+        }
+        
+        .resource-header i {
+            font-size: 20px;
+            margin-right: 10px;
+        }
+        
+        .resource-count {
+            background: rgba(255,255,255,0.2);
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+        }
+        
+        table {
+            margin-bottom: 0;
+        }
+        
+        tbody tr {
+            transition: background-color 0.2s;
+        }
+        
+        tbody tr:hover {
+            background-color: #f9f9f9;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .status-running {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .status-pending {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-failed {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status-succeeded {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .btn-action {
+            padding: 4px 8px;
+            font-size: 12px;
+            margin: 0 2px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .spinner-border {
+            color: var(--primary-color);
+        }
+        
+        .error-alert {
+            margin-bottom: 20px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+        
+        .stat-card {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .events-section {
+            margin-top: 30px;
+        }
+        
+        .event-type-warning {
+            color: #ff9800;
+            font-weight: 500;
+        }
+        
+        .event-type-error {
+            color: #f44336;
+            font-weight: 500;
+        }
+        
+        .event-type-error {
+            color: #f44336;
+            font-weight: 500;
+        }
+        
+        .event-row {
+            border-bottom: 1px solid #e0e0e0;
+            padding: 12px 0;
+        }
+        
+        .event-row:last-child {
+            border-bottom: none;
+        }
+        
+        .event-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .event-details {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .event-message {
+            margin-top: 8px;
+            padding: 8px;
+            background-color: #f5f5f5;
+            border-left: 3px solid #0066cc;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 11px;
+        }
+        
+        .event-meta {
+            display: flex;
+            gap: 15px;
+            margin-top: 5px;
+            flex-wrap: wrap;
+        }
+        
+        .event-meta-item {
+            display: flex;
+            gap: 5px;
+            font-size: 11px;
+        }
+        
+        .event-meta-label {
+            color: #999;
+            font-weight: 600;
+        }
+        
+        .modal-content {
+            border-radius: 8px;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-primary:hover {
+            background-color: #0052a3;
+            border-color: #0052a3;
+        }
+        
+        .time-small {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .details-content {
+            max-height: 400px;
+            overflow-y: auto;
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar">
+        <h3><i class="bi bi-cpu" title="Kubernetes Web Management UI"></i> KubeWeb</h3>
+        <ul class="sidebar-nav">
+            <li><a href="#" data-view="dashboard" class="nav-link active"><i class="bi bi-speedometer2" title="Dashboard"></i> Dashboard</a></li>
+            <li><a href="#" data-view="pods" class="nav-link"><i class="bi bi-box" title="Pods"></i> Pods</a></li>
+            <li><a href="#" data-view="deployments" class="nav-link"><i class="bi bi-stack" title="Deployments"></i> Deployments</a></li>
+            <li><a href="#" data-view="services" class="nav-link"><i class="bi bi-globe" title="Services"></i> Services</a></li>
+            <li><a href="#" data-view="ingresses" class="nav-link"><i class="bi bi-arrow-left-right" title="Ingresses"></i> Ingresses</a></li>
+            <li><a href="#" data-view="statefulsets" class="nav-link"><i class="bi bi-diagram-3" title="StatefulSets"></i> StatefulSets</a></li>
+            <li><a href="#" data-view="daemonsets" class="nav-link"><i class="bi bi-bezier2" title="DaemonSets"></i> DaemonSets</a></li>
+            <li><a href="#" data-view="configmaps" class="nav-link"><i class="bi bi-file-earmark" title="ConfigMaps"></i> ConfigMaps</a></li>
+            <li><a href="#" data-view="secrets" class="nav-link"><i class="bi bi-lock" title="Secrets"></i> Secrets</a></li>
+            <li><a href="#" data-view="rbac" class="nav-link"><i class="bi bi-shield-lock" title="RBAC"></i> RBAC</a></li>
+            <li><a href="#" data-view="nodes" class="nav-link"><i class="bi bi-cpu" title="Nodes"></i> Nodes</a></li>
+        </ul>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Header -->
+        <div class="header">
+            <div>
+                <h1 id="page-title">Kubernetes Dashboard</h1>
+            </div>
+            <div class="namespace-selector">
+                <label for="namespace-select" class="form-label">Namespace:</label>
+                <select id="namespace-select" class="form-select">
+                    <option value="default">Loading...</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Alert Messages -->
+        <div id="error-container"></div>
+
+        <!-- View Content -->
+        <div id="content-container">
+            <!-- Dashboard View -->
+            <div id="view-dashboard" class="view-container">
+                <div class="row">
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="resource-card stat-card" onclick="navigateToDashboardView('pods')">
+                            <div class="resource-header">
+                                <span><i class="bi bi-box" title="Pods"></i> Pods</span>
+                            </div>
+                            <div style="padding: 20px; text-align: center;">
+                                <div style="display: flex; justify-content: space-around; align-items: center;">
+                                    <div><div style="color: #28a745; font-size: 24px; font-weight: bold;" id="stat-pods-healthy">-</div><small style="color: #666;">Healthy</small></div>
+                                    <div><div style="color: #dc3545; font-size: 24px; font-weight: bold;" id="stat-pods-unhealthy">-</div><small style="color: #666;">Unhealthy</small></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="resource-card stat-card" onclick="navigateToDashboardView('deployments')">
+                            <div class="resource-header">
+                                <span><i class="bi bi-stack" title="Deployments"></i> Deployments</span>
+                            </div>
+                            <div style="padding: 20px; text-align: center;">
+                                <div style="display: flex; justify-content: space-around; align-items: center;">
+                                    <div><div style="color: #28a745; font-size: 24px; font-weight: bold;" id="stat-deployments-healthy">-</div><small style="color: #666;">Healthy</small></div>
+                                    <div><div style="color: #dc3545; font-size: 24px; font-weight: bold;" id="stat-deployments-unhealthy">-</div><small style="color: #666;">Unhealthy</small></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="resource-card stat-card" onclick="navigateToDashboardView('services')">
+                            <div class="resource-header">
+                                <span><i class="bi bi-globe" title="Services"></i> Services</span>
+                            </div>
+                            <div style="padding: 20px; text-align: center;">
+                                <div style="display: flex; justify-content: space-around; align-items: center;">
+                                    <div><div style="color: #28a745; font-size: 24px; font-weight: bold;" id="stat-services-healthy">-</div><small style="color: #666;">Healthy</small></div>
+                                    <div><div style="color: #dc3545; font-size: 24px; font-weight: bold;" id="stat-services-unhealthy">-</div><small style="color: #666;">Unhealthy</small></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="resource-card stat-card" onclick="navigateToDashboardView('ingresses')">
+                            <div class="resource-header">
+                                <span><i class="bi bi-arrow-left-right" title="Ingresses"></i> Ingresses</span>
+                            </div>
+                            <div style="padding: 20px; text-align: center;">
+                                <div style="display: flex; justify-content: space-around; align-items: center;">
+                                    <div><div style="color: #28a745; font-size: 24px; font-weight: bold;" id="stat-ingresses-healthy">-</div><small style="color: #666;">Healthy</small></div>
+                                    <div><div style="color: #dc3545; font-size: 24px; font-weight: bold;" id="stat-ingresses-unhealthy">-</div><small style="color: #666;">Unhealthy</small></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="resource-card stat-card" onclick="navigateToDashboardView('statefulsets')">
+                            <div class="resource-header">
+                                <span><i class="bi bi-diagram-3" title="StatefulSets"></i> StatefulSets</span>
+                            </div>
+                            <div style="padding: 20px; text-align: center;">
+                                <div style="display: flex; justify-content: space-around; align-items: center;">
+                                    <div><div style="color: #28a745; font-size: 24px; font-weight: bold;" id="stat-statefulsets-healthy">-</div><small style="color: #666;">Healthy</small></div>
+                                    <div><div style="color: #dc3545; font-size: 24px; font-weight: bold;" id="stat-statefulsets-unhealthy">-</div><small style="color: #666;">Unhealthy</small></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="resource-card stat-card" onclick="navigateToDashboardView('daemonsets')">
+                            <div class="resource-header">
+                                <span><i class="bi bi-bezier2" title="DaemonSets"></i> DaemonSets</span>
+                            </div>
+                            <div style="padding: 20px; text-align: center;">
+                                <div style="display: flex; justify-content: space-around; align-items: center;">
+                                    <div><div style="color: #28a745; font-size: 24px; font-weight: bold;" id="stat-daemonsets-healthy">-</div><small style="color: #666;">Healthy</small></div>
+                                    <div><div style="color: #dc3545; font-size: 24px; font-weight: bold;" id="stat-daemonsets-unhealthy">-</div><small style="color: #666;">Unhealthy</small></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="resource-card stat-card" onclick="navigateToDashboardView('configmaps')">
+                            <div class="resource-header">
+                                <span><i class="bi bi-file-earmark" title="ConfigMaps"></i> ConfigMaps</span>
+                            </div>
+                            <div style="padding: 20px; text-align: center;">
+                                <div style="display: flex; justify-content: space-around; align-items: center;">
+                                    <div><div style="color: #28a745; font-size: 24px; font-weight: bold;" id="stat-configmaps-healthy">-</div><small style="color: #666;">Healthy</small></div>
+                                    <div><div style="color: #dc3545; font-size: 24px; font-weight: bold;" id="stat-configmaps-unhealthy">-</div><small style="color: #666;">Unhealthy</small></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="resource-card stat-card" onclick="navigateToDashboardView('secrets')">
+                            <div class="resource-header">
+                                <span><i class="bi bi-lock" title="Secrets"></i> Secrets</span>
+                            </div>
+                            <div style="padding: 20px; text-align: center;">
+                                <div style="display: flex; justify-content: space-around; align-items: center;">
+                                    <div><div style="color: #28a745; font-size: 24px; font-weight: bold;" id="stat-secrets-healthy">-</div><small style="color: #666;">Healthy</small></div>
+                                    <div><div style="color: #dc3545; font-size: 24px; font-weight: bold;" id="stat-secrets-unhealthy">-</div><small style="color: #666;">Unhealthy</small></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="resource-card stat-card" onclick="navigateToDashboardView('nodes')">
+                            <div class="resource-header">
+                                <span><i class="bi bi-cpu" title="Nodes"></i> Nodes</span>
+                            </div>
+                            <div style="padding: 20px; text-align: center;">
+                                <div style="display: flex; justify-content: space-around; align-items: center;">
+                                    <div><div style="color: #28a745; font-size: 24px; font-weight: bold;" id="stat-nodes-healthy">-</div><small style="color: #666;">Healthy</small></div>
+                                    <div><div style="color: #dc3545; font-size: 24px; font-weight: bold;" id="stat-nodes-unhealthy">-</div><small style="color: #666;">Unhealthy</small></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Events Section -->
+                <div class="events-section">
+                    <div class="resource-card">
+                        <div class="resource-header">
+                            <span><i class="bi bi-lightning"></i> Cluster Events</span>
+                            <span class="resource-count">Live Updates</span>
+                        </div>
+                        <div style="padding: 20px;">
+                            <div id="events-content"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pods View -->
+            <div id="view-pods" class="view-container" style="display:none;">
+                <div class="resource-card">
+                    <div class="resource-header">
+                        <span><i class="bi bi-box"></i> Pods</span>
+                        <span class="resource-count"><span id="pod-count">0</span> running</span>
+                    </div>
+                    <div id="pods-content"></div>
+                </div>
+            </div>
+
+            <!-- Deployments View -->
+            <div id="view-deployments" class="view-container" style="display:none;">
+                <div class="resource-card">
+                    <div class="resource-header">
+                        <span><i class="bi bi-stack"></i> Deployments</span>
+                        <span class="resource-count"><span id="deployment-count">0</span> total</span>
+                    </div>
+                    <div id="deployments-content"></div>
+                </div>
+            </div>
+
+            <!-- Services View -->
+            <div id="view-services" class="view-container" style="display:none;">
+                <div class="resource-card">
+                    <div class="resource-header">
+                        <span><i class="bi bi-globe"></i> Services</span>
+                        <span class="resource-count"><span id="service-count">0</span> total</span>
+                    </div>
+                    <div id="services-content"></div>
+                </div>
+            </div>
+
+            <!-- Ingresses View -->
+            <div id="view-ingresses" class="view-container" style="display:none;">
+                <div class="resource-card">
+                    <div class="resource-header">
+                        <span><i class="bi bi-arrow-left-right"></i> Ingresses</span>
+                        <span class="resource-count"><span id="ingress-count">0</span> total</span>
+                    </div>
+                    <div id="ingresses-content"></div>
+                </div>
+            </div>
+
+            <!-- StatefulSets View -->
+            <div id="view-statefulsets" class="view-container" style="display:none;">
+                <div class="resource-card">
+                    <div class="resource-header">
+                        <span><i class="bi bi-diagram-3"></i> StatefulSets</span>
+                        <span class="resource-count"><span id="statefulset-count">0</span> total</span>
+                    </div>
+                    <div id="statefulsets-content"></div>
+                </div>
+            </div>
+
+            <!-- DaemonSets View -->
+            <div id="view-daemonsets" class="view-container" style="display:none;">
+                <div class="resource-card">
+                    <div class="resource-header">
+                        <span><i class="bi bi-bezier2"></i> DaemonSets</span>
+                        <span class="resource-count"><span id="daemonset-count">0</span> total</span>
+                    </div>
+                    <div id="daemonsets-content"></div>
+                </div>
+            </div>
+
+            <!-- ConfigMaps View -->
+            <div id="view-configmaps" class="view-container" style="display:none;">
+                <div class="resource-card">
+                    <div class="resource-header">
+                        <span><i class="bi bi-file-earmark"></i> ConfigMaps</span>
+                        <span class="resource-count"><span id="configmap-count">0</span> total</span>
+                    </div>
+                    <div id="configmaps-content"></div>
+                </div>
+            </div>
+
+            <!-- Secrets View -->
+            <div id="view-secrets" class="view-container" style="display:none;">
+                <div class="resource-card">
+                    <div class="resource-header">
+                        <span><i class="bi bi-lock"></i> Secrets</span>
+                        <span class="resource-count"><span id="secret-count">0</span> total</span>
+                    </div>
+                    <div id="secrets-content"></div>
+                </div>
+            </div>
+
+            <!-- RBAC View -->
+            <div id="view-rbac" class="view-container" style="display:none;">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="resource-card">
+                            <div class="resource-header">
+                                <span><i class="bi bi-shield-lock"></i> Cluster Roles</span>
+                                <span class="resource-count"><span id="clusterrole-count">0</span> total</span>
+                            </div>
+                            <div id="clusterroles-content"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="resource-card">
+                            <div class="resource-header">
+                                <span><i class="bi bi-shield-lock"></i> Roles</span>
+                                <span class="resource-count"><span id="role-count">0</span> total</span>
+                            </div>
+                            <div id="roles-content"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Nodes View -->
+            <div id="view-nodes" class="view-container" style="display:none;">
+                <div class="resource-card">
+                    <div class="resource-header">
+                        <span><i class="bi bi-cpu"></i> Nodes</span>
+                        <span class="resource-count"><span id="node-count">0</span> total</span>
+                    </div>
+                    <div id="nodes-content"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Details Modal -->
+    <div class="modal fade" id="detailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="modalContent"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
